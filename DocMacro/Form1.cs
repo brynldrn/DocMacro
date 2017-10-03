@@ -8,9 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using iTextSharp.text;
-using iTextSharp.text.pdf;
-using iTextSharp.text.pdf.parser;
+using Ionic.Zip;
 
 namespace DocMacro
 {
@@ -21,27 +19,57 @@ namespace DocMacro
             InitializeComponent();
         }
 
-        private void openPDFbutton_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Click Listener for the Document Upload
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnOpen_Click(object sender, EventArgs e)
         {
-            ofd1.Filter = "PDF Files | *.pdf";
+            ofd1.Filter = "Microsoft Word Files | *.doc; *.docx";
             if(ofd1.ShowDialog() == DialogResult.OK)
             {
-                MessageBox.Show(GetTextFromPDF(ofd1.FileName));
+                fileLabel.Text = ofd1.FileName;
             }
         }
 
-        private string GetTextFromPDF(string path)
+        /// <summary>
+        /// Converts the accepted doc file to zip
+        /// </summary>
+        /// <param name="fileName"></param>
+        private void convertToZip(String fileName)
         {
-            StringBuilder text = new StringBuilder();
-            using (PdfReader reader = new PdfReader(path))
+            File.Move(fileName, Path.ChangeExtension(fileName, ".zip"));
+            string file = ofd1.FileName;
+            string path = file.Replace(ofd1.SafeFileName, "");
+            readZip(Path.ChangeExtension(fileName, ".zip"), path + "extracted");
+        }
+
+
+        /// <summary>
+        /// Convert button listener
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnConvert_Click(object sender, EventArgs e)
+        {
+            convertToZip(ofd1.FileName);
+        }
+
+        private void readZip(string zipToUnpack, string unpackDirectory)
+        {
+            using (ZipFile zip1 = ZipFile.Read(zipToUnpack))
             {
-                for (int i = 1; i <= reader.NumberOfPages; i++)
+                // here, we extract every entry, but we could extract conditionally
+                // based on entry name, size, date, checkbox status, etc.  
+                foreach (ZipEntry e in zip1)
                 {
-                    text.Append(PdfTextExtractor.GetTextFromPage(reader, i));
+                    if (e.ToString().Contains("word/document.xml"))
+                    {
+                        e.Extract(unpackDirectory, ExtractExistingFileAction.OverwriteSilently);
+                    }
                 }
             }
-
-            return text.ToString();
         }
     }
 }
